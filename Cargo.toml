@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 lurk = { git = "https://github.com/lurk-lab/lurk-rs.git" }
 halo2curves = { version = "0.6.0", features = ["bits", "derive_serde"] }
+bincode = "1.3.3"
