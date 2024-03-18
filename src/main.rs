@@ -1,21 +1,37 @@
 use std::{sync::Arc};
-use halo2curves::bn256::{Bn256, Fr as Bn};
+use halo2curves::{bn256::{Bn256, Fr as Bn}, ff::derive::rand_core::le};
 use lurk::{
-    dual_channel::dummy_terminal, field::LurkField, lang::Lang, lem::{pointers::Ptr, store::Store}, proof::{nova::NovaProver, Prover, RecursiveSNARKTrait}, public_parameters::{instance::{Instance, Kind}, public_params}, state::user_sym
+    dual_channel::dummy_terminal, field::LurkField, lang::Lang, lem::{eval::{evaluate, evaluate_simple, evaluate_with_env, make_cprocs_funcs_from_lang, make_eval_step_from_config, EvalConfig}, pointers::Ptr, store::Store, tag::Tag}, proof::{nova::NovaProver, Prover, RecursiveSNARKTrait}, public_parameters::{instance::{Instance, Kind}, public_params}, state::user_sym, tag::ContTag
 };
-
-fn build_program<F: LurkField>(store: &Store<F>) -> Ptr {
-    let program = "(+ 2 2)";
-    store.read_with_default_state(program).unwrap()
-}
 
 const REDUCTION_COUNT: usize = 2;
 fn main() {
-    println!("Starting...");
+    let program = include_str!("test.lurk");
+    println!("{:?}", program);
+
     let store = &Store::<Bn>::default();
+    let call = store.read_with_default_state(program).unwrap();
+    println!("Starting...");
+
     let lang = Lang::<Bn>::new();
     let lang_rc = Arc::new(lang.clone());
-    let call = build_program(&store);
+    let config = EvalConfig::new_ivc(&lang);
+
+    // first we're going to evaluate the program to see if it's valid
+    let eval_step = make_eval_step_from_config(&config);
+    let cprocs = make_cprocs_funcs_from_lang(&lang.clone());
+
+    // first check if the program is validish?
+    let frames = evaluate(Some((&eval_step, &cprocs[..], &lang_rc)), call, &store, 10000, &dummy_terminal::<Ptr>());
+    let output = frames.unwrap().last().expect("no frames").output.clone();
+    println!("{:?}", output[2]);
+    match output[2].tag() {
+        Tag::Cont(ContTag::Terminal) => {}
+        Tag::Cont(ContTag::Error) => {
+            println!("program has error");
+        }
+        _ => println!("needs more iterations")
+    }
     
     let nova_prover = NovaProver::new(REDUCTION_COUNT, lang_rc.clone());
 
