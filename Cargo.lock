@@ -1693,6 +1693,7 @@ dependencies = [
 name = "lurk-test"
 version = "0.1.0"
 dependencies = [
+ "bincode",
  "halo2curves",
  "lurk",
 ]

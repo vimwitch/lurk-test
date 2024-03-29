@@ -32,4 +32,11 @@ fn main() {
     println!("Built proof");
     assert!(proof.verify(&pp, &z0, &zi).unwrap());
     println!("Verified proof");
+    let proof_c = proof.compress(&pp).unwrap();
+    println!("Compressed proof");
+    assert!(proof_c.verify(&pp, &z0, &zi).unwrap());
+    println!("Verified compressed proof");
+
+    let buf = bincode::serialize(&proof_c).unwrap();
+    println!("proof size: {:?} bytes", buf.len());
 }
